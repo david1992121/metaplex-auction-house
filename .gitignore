@@ -1,11 +1,4 @@
 node_modules
 build
-.env.local
-.env
 .next
-.git1
-.git2
-yarn-error.log
-package-lock.json
-yarn.lock
 command.sh

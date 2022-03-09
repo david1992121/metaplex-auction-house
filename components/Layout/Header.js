@@ -10,16 +10,16 @@ export default function Header() {
       <div className="mr-auto pl-3">
         <Link
           passHref
-          href="/"
+          href="https://google.com"
           className="hover:cursor-pointer"
         >
           <a
-            // target="_blank"
-            // rel="noreferrer"
+            target="_blank"
+            rel="noreferrer"
             onClick={() => setMobileMenuOpen(false)}
             className="font-monstmedium text-white block uppercase lg:inline-block px-4 lg:mr-2 hover:text-indigo-500"
           >
-            <span className="text-white ml-4">HOME</span>
+            <span className="text-white ml-4"> |</span>
           </a>
         </Link>
         <Link passHref href="/" className="hover:cursor-pointer">
@@ -33,14 +33,6 @@ export default function Header() {
             onClick={() => setMobileMenuOpen(false)}
             className="font-monstmedium text-white block uppercase lg:inline-block px-4 lg:mr-2 hover:text-indigo-500"
           ></a>
-        </Link>
-        <Link passHref href="/auction_house" className="hover:cursor-pointer">
-          <a
-            onClick={() => setMobileMenuOpen(false)}
-            className="font-monstmedium text-white block uppercase lg:inline-block px-4 lg:mr-2 hover:text-indigo-500"
-          >
-            My NFTs
-          </a>
         </Link>
       </div>
 

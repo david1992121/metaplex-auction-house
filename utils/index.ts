@@ -14,9 +14,6 @@ import {
 
 import { WalletNotConnectedError } from "@solana/wallet-adapter-base";
 
-export * from './misc'
-export * from './customFetch'
-
 interface BlockhashAndFeeCalculator {
   blockhash: Blockhash;
   feeCalculator: FeeCalculator;
@@ -120,7 +117,7 @@ export const sendTransactions = async (
 
     try {
       const { txid } = await signedTxnPromise;
-      txIds.push(txid as never);
+      txIds.push(txid);
     } catch (error) {
       console.error(error);
       // @ts-ignore

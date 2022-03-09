@@ -1,7 +1,6 @@
-import { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { Metadata } from '@metaplex-foundation/mpl-token-metadata'
-import { useWallet } from '@solana/wallet-adapter-react'
 import * as anchor from '@project-serum/anchor'
 import {
   Container,
@@ -14,9 +13,8 @@ import {
   TextField,
 } from '@material-ui/core'
 import styled from 'styled-components'
-import { AUCTION_HOUSE_ADDRESS, AH_KEYPAIR } from '../helpers/constants'
+import { AUCTION_HOUSE_ADDRESS, AUCTION_HOUSE_AUTHORITY, AUCTION_HOUSE_FEE_PAYER as FEE_PAYER } from '../helpers/constants'
 import { sell } from '../auction-house'
-import { Sell } from '../helpers/types'
 import {
   Keypair,
   LAMPORTS_PER_SOL,
@@ -25,28 +23,11 @@ import {
   Transaction,
 } from '@solana/web3.js'
 import { AuctionHouseProgram } from '@metaplex-foundation/mpl-auction-house'
-import { ISingleNFT } from '../types/nft_details.d'
-import { useNFTDetails, useNFTProfile, useConnectionConfig } from '../context'
-import {
-  tradeStatePDA,
-  freeSellerTradeStatePDA,
-  getSellInstructionAccounts,
-  callCancelInstruction,
-  tokenSize,
-} from '../helpers/actions'
-import {
-  AUCTION_HOUSE_PREFIX,
-  AUCTION_HOUSE,
-  AUCTION_HOUSE_PROGRAM_ID,
-  TREASURY_MINT,
-  toPublicKey,
-  createSellInstruction,
-  SellInstructionArgs,
-  SellInstructionAccounts,
-  getMetadata,
-  StringPublicKey,
-  bnTo8,
-} from '../web3'
+import { useForm, Controller } from 'react-hook-form'
+import { Link } from 'react-router-dom'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import {MetadataProgram} from  '@metaplex-foundation/mpl-token-metadata'
+import BN from 'bn.js'
 
 export const NftItem = styled.button`
   &:hover {
@@ -62,7 +43,7 @@ const style = {
   left: '50%',
   transform: 'translate(-50%, -50%)',
   width: '80%',
-  bgcolor: '#ffffff88',
+  bgcolor: '#ffffff',
   boxShadow: 24,
   p: 4,
 }
@@ -74,6 +55,19 @@ const Img = styled('img')({
   maxHeight: '100%',
 })
 
+
+const { createSellInstruction } = AuctionHouseProgram.instructions
+
+const NATIVE_MINT = new PublicKey("So11111111111111111111111111111111111111112");
+interface OfferForm {
+  amount: string;
+}
+
+// interface OfferProps {
+//   nft: Nft;
+//   marketplace: Marketplace;
+// }
+
 export interface NftProps {
   connection: anchor.web3.Connection
 }
@@ -83,7 +77,7 @@ export const Nft = (props: NftProps) => {
 
   const wallet = useWallet()
 
-  const { connected, publicKey, sendTransaction } = wallet
+  const { connected, publicKey, sendTransaction, signTransaction } = wallet
 
   const [list, setList] = useState([])
 
@@ -93,15 +87,6 @@ export const Nft = (props: NftProps) => {
 
   const [buyPrice, setBuyPrice] = useState(0)
 
-  const {
-    general,
-    fetchGeneral,
-    nftMetadata,
-    updateUserInput,
-    sellNFT,
-  } = useNFTDetails()
-  const { sessionUser } = useNFTProfile()
-  const { connection, network } = useConnectionConfig()
   const [userInput, setUserInput] = useState<any>({
     minimumBid: '',
     royalties: '',
@@ -123,6 +108,112 @@ export const Nft = (props: NftProps) => {
     setSelectedItem(null)
     setBuyPrice(0)
   }
+
+  const { control, watch } = useForm<OfferForm>({})
+  const { connection } = useConnection()
+  const [sellAmount, setSellAmount] = useState(0)
+
+  const sellNftTransaction = async () => {
+    const sellPrice = String(Number(sellAmount) * LAMPORTS_PER_SOL);
+    const tokenSize = '1';
+    const auctionHouseFeeAccount = new PublicKey(FEE_PAYER);
+    const auctionHouse = new PublicKey(AUCTION_HOUSE_ADDRESS);
+    const authority1 = AUCTION_HOUSE_AUTHORITY;
+    const authority = new PublicKey(authority1);
+    // const authority = publicKey;
+
+    const tokenMint = new PublicKey(selectedItem.mint);
+
+    if (!publicKey || !signTransaction) {
+      debugger;
+      return
+    }
+
+    const associatedTokenAccount = (
+      await AuctionHouseProgram.findAssociatedTokenAccountAddress(tokenMint, publicKey) 
+    )[0];
+
+    console.log("wallet key", publicKey);
+
+    // Find TradeState Account
+    const [
+      sellerTradeState,
+      tradeStateBump,
+    ] = await AuctionHouseProgram.findTradeStateAddress(
+      publicKey,
+      auctionHouse,
+      associatedTokenAccount, 
+      NATIVE_MINT,
+      tokenMint,
+      sellPrice,
+      tokenSize
+    )
+
+    const [metadata] = await MetadataProgram.findMetadataAccount(tokenMint)
+
+    const [
+      programAsSigner,
+      programAsSignerBump,
+    ] = await AuctionHouseProgram.findAuctionHouseProgramAsSignerAddress()
+
+    const [
+      freeTradeState,
+      freeTradeBump,
+    ]  = await AuctionHouseProgram.findTradeStateAddress(
+      auctionHouse,
+      publicKey,
+      associatedTokenAccount,
+      NATIVE_MINT,
+      tokenMint,
+      String(1),
+      String(0)
+    )
+
+    // make transaction
+    const txt = new Transaction()
+
+    const sellInstructionArgs = {
+      tradeStateBump,
+      freeTradeStateBump: freeTradeBump,
+      programAsSignerBump: programAsSignerBump,
+      buyerPrice: new BN(sellPrice),
+      tokenSize: new BN(tokenSize),
+    }
+
+    const sellInstructionAccounts:any = {
+      wallet: publicKey,
+      tokenAccount: associatedTokenAccount,
+      metadata: metadata,
+      authority: authority,
+      auctionHouse: auctionHouse,
+      auctionHouseFeeAccount: auctionHouseFeeAccount,
+      sellerTradeState: sellerTradeState,
+      freeSellerTradeState: freeTradeState,
+      programAsSigner: programAsSigner,
+    }
+
+    // generate instruction
+    const instruction = createSellInstruction(
+      sellInstructionAccounts,
+      sellInstructionArgs
+    )
+
+    // add instruction to tx
+    txt.add(instruction)
+    
+    // lookup recent block hash and assign fee payer (the current logged in user)
+    txt.recentBlockhash = (await connection.getRecentBlockhash()).blockhash
+    txt.feePayer = publicKey
+    
+    console.log("txt", txt);
+    // sign it
+    const signed = await signTransaction(txt)
+
+    // submit transaction
+    const signature = await connection.sendRawTransaction(signed.serialize())
+    await connection.confirmTransaction(signature, 'processed')
+  }
+
 
   const nftData = async () => {
     const nftsmetadata = await Metadata.findDataByOwner(
@@ -166,179 +257,13 @@ export const Nft = (props: NftProps) => {
       signTransaction: wallet.signTransaction,
     } as anchor.Wallet
   }, [wallet])
-  const sellMyNft = async (mint: string) => {
-    const sell_param: Sell = {
-      keypair: anchorWallet,
-      env: 'devnet',
-      auctionHouse: AUCTION_HOUSE_ADDRESS,
-      auctionHouseKeypair: Keypair.fromSecretKey(Uint8Array.from(AH_KEYPAIR)),
-      buyPrice: buyPrice,
-      mint: mint,
-      tokenSize: 1,
-      auctionHouseSigns: true,
-    }
-    if (mint || buyPrice !== 0 || buyPrice !== undefined) {
-      console.log('sell_param', sell_param)
-      sell(sell_param)
-    } else {
-      alert('you are trying wrong action!')
-    }
-  }
-  const derivePDAsForInstruction = async () => {
-    const buyerPriceInLamports =
-      parseFloat(userInput['minimumBid'] || 0) * LAMPORTS_PER_SOL
-    const buyerPrice: anchor.BN = new anchor.BN(buyerPriceInLamports)
 
-    const metaDataAccount: StringPublicKey = await getMetadata(
-      general.mint_address,
-    )
-    const tradeState: [PublicKey, number] = (await tradeStatePDA(
-      publicKey as any,
-      general,
-      bnTo8(buyerPrice),
-    )) as [PublicKey, number]
-    const freeTradeState: [PublicKey, number] = (await freeSellerTradeStatePDA(
-      publicKey as any,
-      general,
-    )) as [PublicKey, number]
-    const programAsSignerPDA: [
-      PublicKey,
-      number,
-    ] = await PublicKey.findProgramAddress(
-      [Buffer.from(AUCTION_HOUSE_PREFIX), Buffer.from('signer')],
-      toPublicKey(AUCTION_HOUSE_PROGRAM_ID),
-    )
+  const auctionHouseFeeBasisPoints = 200;
+  const amount = Number(sellAmount || 0) * LAMPORTS_PER_SOL;
+  // const royalties = (amount * nft.sellerFeeBasisPoints) / 10000;
+  const royalties = (amount * 500) / 10000;
+  const auctionHouseFee = (amount * auctionHouseFeeBasisPoints) / 10000;
 
-    if (
-      !tradeState ||
-      !freeTradeState ||
-      !programAsSignerPDA ||
-      !metaDataAccount
-    ) {
-      throw Error(`Could not derive values for sell instructions`)
-    }
-
-    return {
-      metaDataAccount,
-      tradeState,
-      freeTradeState,
-      programAsSignerPDA,
-      buyerPrice,
-    }
-  }
-  const callSellInstruction = async (e: any) => {
-    const {
-      metaDataAccount,
-      tradeState,
-      freeTradeState,
-      programAsSignerPDA,
-      buyerPrice,
-    } = await derivePDAsForInstruction()
-
-    console.log(
-      metaDataAccount,
-      tradeState,
-      freeTradeState,
-      programAsSignerPDA,
-      buyerPrice.toString(),
-    )
-
-    const sellInstructionArgs: SellInstructionArgs = {
-      tradeStateBump: tradeState[1],
-      freeTradeStateBump: freeTradeState[1],
-      programAsSignerBump: programAsSignerPDA[1],
-      buyerPrice: buyerPrice,
-      tokenSize: tokenSize,
-    }
-
-    const sellInstructionAccounts: SellInstructionAccounts = await getSellInstructionAccounts(
-      publicKey as any,
-      general,
-      metaDataAccount,
-      tradeState[0],
-      freeTradeState[0],
-      programAsSignerPDA[0],
-    )
-
-    const sellIX: TransactionInstruction = await AuctionHouseProgram.instructions.createSellInstruction(
-      sellInstructionAccounts,
-      sellInstructionArgs,
-    )
-    console.log(sellIX)
-
-    const transaction = new Transaction().add(sellIX)
-    const signature = await sendTransaction(transaction, connection)
-    console.log(signature)
-    const confirm = await connection.confirmTransaction(signature, 'processed')
-    console.log(confirm)
-
-    if (confirm.value.err === null) {
-      postTransationToAPI(signature, buyerPrice, tokenSize).then((res: any) => {
-        console.log(res)
-        if (!res) {
-          callCancelInstruction(
-            wallet,
-            connection,
-            general,
-            tradeState,
-            buyerPrice,
-          )
-        }
-
-        setTimeout(() => {
-          //   alert(successfulListingMsg(signature, nftMetadata, userInput['minimumBid']))
-          //   history.push('/NFTs/profile')
-          alert('this is successful tx')
-        }, 2000)
-      })
-    }
-  }
-
-  const postTransationToAPI = async (
-    txSig: any,
-    buyerPrice: anchor.BN,
-    tokenSize: anchor.BN,
-  ) => {
-    const sellObject = {
-      ask_id: null,
-      clock: Date.now().toString(),
-      tx_sig: txSig,
-      wallet_key: publicKey?.toBase58(),
-      auction_house_key: AUCTION_HOUSE,
-      token_account_key: general.token_account,
-      auction_house_treasury_mint_key: TREASURY_MINT,
-      token_account_mint_key: general.mint_address,
-      buyer_price: buyerPrice.toString(),
-      token_size: tokenSize.toString(),
-      non_fungible_id: general.non_fungible_id,
-      collection_id: general.collection_id,
-      user_id: sessionUser.user_id,
-    }
-
-    try {
-      const res = await sellNFT(sellObject)
-      console.dir(res)
-      if (res.isAxiosError) {
-        // notify({
-        //   type: 'error',
-        //   message: (
-        //     <TransactionErrorMsg
-        //       title={`NFT Listing error!`}
-        //       itemName={nftMetadata.name}
-        //       supportText={`Please try again, if the error persists please contact support.`}
-        //     />
-        //   )
-        // })
-        alert(nftMetadata.name + ': this has error')
-        return false
-      } else {
-        return true
-      }
-    } catch (error) {
-      console.error(error)
-      return false
-    }
-  }
   return (
     <div className="bg-container">
       <Container style={{ marginTop: 100 }}>
@@ -353,7 +278,7 @@ export const Nft = (props: NftProps) => {
                 <NftItem
                   className="card bordered max-w-xs compact rounded-md text-white p-3 border border-secondary border-5 rounded"
                   key={i}
-                  onClick={() =>
+                  onDoubleClick={() =>
                     // router.push('/post/abc')
                     handleOpen(item)
                   }
@@ -375,7 +300,7 @@ export const Nft = (props: NftProps) => {
           </div>
         ) : null}
       </Container>
-      <Modal
+           <Modal
         open={open}
         onClose={handleClose}
         aria-labelledby="modal-modal-title"
@@ -383,63 +308,10 @@ export const Nft = (props: NftProps) => {
       >
         <Box sx={style}>
           <Box sx={{ flexGrow: 1 }}>
-            {/* <Grid container spacing={2}>
-                        <Grid item xs={4}>
-                            <Img alt="complex" src={selectedItem?.image} />
-                            <h2> 
-                                <Typography variant="subtitle1" component="div">
-                                {selectedItem.name}
-                                </Typography>
-                            </h2>
-                        </Grid>
-                        <Grid item xs={8} sm container direction="column">
-                            <Grid
-                                container
-                                direction="row"
-                                justifyContent="space-evenly"
-                                alignItems="center"
-                            >
-                            {selectedItem?.attributes &&
-                            Object.entries(selectedItem?.attributes)?.map((item_props:any, i:any) => {
-                                <Grid item xs={4} className="border-5 rounded border-warning p-4" key={i}>
-                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                        {item_props[0]} : {item_props[1]}
-                                    </Typography>
-                                </Grid>
-                            })}
-                            </Grid>
-                            <Grid
-                                container
-                                direction="row"
-                                justifyContent="space-evenly"
-                                alignItems="center" 
-                            >
-                            {selectedItem?.creator?.map((creator:any, i:any) => {
-                                <Grid item xs={4} className="border-5 rounded border-warning p-4" key={i}>
-                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                        {creator.address} : {creator.share} : {creator.verified?"true":"false"}
-                                    </Typography>
-                                </Grid>
-                            })}
-                            </Grid>
-                            <Grid item>
-                                <Typography variant="subtitle1" component="div">
-                                {selectedItem.symbol}
-                                </Typography>
-                            </Grid>
-                            <Grid item>
-                                <Button variant="contained" onClick={() => {
-                                    console.log("sell");
-                                }}>
-                                    Sell
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </Grid> */}
             <div className="w-full relative flex flex-col bg-primary-200 overflow-hidden shadow-2xl">
-              <div className="w-full flex justify-between p-2">
-                <Button
-                  className="text-primary hover:text-secondary text-black"
+              <div className="w-full flex justify-between p-2 text-black">
+                <button
+                  className="text-black hover:text-secondary text-black"
                   onClick={handleClose}
                 >
                   <span className="sr-only">Back</span>
@@ -457,7 +329,7 @@ export const Nft = (props: NftProps) => {
                       d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"
                     ></path>
                   </svg>
-                </Button>
+                </button>
               </div>
               <div className="px-4 pb-8 sm:px-6  lg:px-8">
                 <div className="w-full grid grid-cols-1 gap-y-8 gap-x-6 items-start sm:grid-cols-12 lg:gap-x-8">
@@ -490,27 +362,50 @@ export const Nft = (props: NftProps) => {
                       </p>
                     </section>
                     <section className="flex items-end w-full gap-4 font-bold text-xl mt-4">
-                      <div className="w-full space-y-2">
-                        <TextField
-                          id="outlined-number"
-                          label="Sell price"
-                          type="number"
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          className="w-full"
-                          onChange={(e: any) => setBuyPrice(e.target.value)}
-                        />
+                       <div className="text-left grow">
+                      <h3 className="mb-6 text-xl font-bold md:text-2xl">Sell this Nft</h3>
+                      <label className="block mb-1">Price in SOL</label>
+                      <div className="prefix-input prefix-icon-sol">                       
+                          <>
+                            <input
+                              autoFocus
+                              value={sellAmount}
+                              type="number"
+                              onChange={(e: any) => {
+                                setSellAmount(e.target.value)
+                              }}
+                              className="w-full h-10 pl-8 mb-4 text-black bg-transparent border-2 border-gray-500 rounded-md focus:outline-none"
+                            />
+                            <div className="flex flex-col gap-2 mb-4">
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">{500 / 100}% creator royalty</span>
+                                <div className="flex justify-center gap-2">
+                                  <span className="icon-sol"></span>
+                                  <span>{royalties / LAMPORTS_PER_SOL}</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">{auctionHouseFeeBasisPoints / 100}% transaction fee</span>
+                                <div className="flex justify-center gap-2">
+                                  <span className="icon-sol"></span>
+                                  <span>{auctionHouseFee / LAMPORTS_PER_SOL}</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">You receive</span>
+                                <div className="flex justify-center gap-2">
+                                  <span className="icon-sol"></span>
+                                  <span>{(amount - royalties - auctionHouseFee) / LAMPORTS_PER_SOL}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </>
                       </div>
-                      <div className="w-full space-y-2">
-                        <Button
-                          variant="contained"
-                          className="inline-flex w-full items-center justify-center text-white text-center px-2.5 py-2.5 border border-transparent text-lg font-bold rounded shadow-sm bg-secondary hover:bg-secondary-200 focus:outline-none "
-                          onClick={() => sellMyNft(selectedItem.mint)}
-                        >
-                          Sell
-                        </Button>
+                      <div className="grid">
+                        <button className="w-full h-12 text-sm text-white transition-colors duration-150 bg-black rounded-full lg:text-xl md:text-base focus:shadow-outline hover:bg-black"
+                        onClick={()=>sellNftTransaction()}>List for sale</button>
                       </div>
+                    </div>
                     </section>
                   </div>
                 </div>

@@ -16,7 +16,8 @@ import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 
 // import { WalletDialogProvider } from "@solana/wallet-adapter-material-ui";
 import { ThemeProvider, createTheme } from "@material-ui/core";
-import {Nft} from "../components/Nft";
+import { Nft } from "../components/Nft";
+
 const theme = createTheme({
   palette: {
     type: "dark",
@@ -40,17 +41,15 @@ const txTimeout = 30000; // milliseconds (confirm this works for your project)
 const App = () => {
   return (
     <ThemeProvider theme={theme}>
-      {/* <Home
-        candyMachineId={candyMachineId}
+      <Nft
+        // candyMachineId={candyMachineId}
         connection={connection}
-        startDate={startDateSeed}
-        txTimeout={txTimeout}
-        rpcHost={rpcHost}
-      /> */}
-      <Nft 
-      connection={connection}
+        // startDate={startDateSeed}
+        // txTimeout={txTimeout}
+        // rpcHost={rpcHost}
       />
     </ThemeProvider>
   );
 };
+
 export default App;

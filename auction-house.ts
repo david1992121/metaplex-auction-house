@@ -23,20 +23,6 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
 import { getPriceWithMantissa } from './helpers/various';
 import { sendTransactionWithRetryWithKeypair } from './helpers/transactions';
 import { decodeMetadata, Metadata } from './helpers/schema';
-import {
-    ShowEscrow,
-    Withdraw,
-    Sell,
-    WithdrawFromTreasury,
-    WithdrawFromFees,
-    Cancel,
-    ExecuteSale,
-    Buy,
-    Deposit,
-    Show,
-    CreateAuctionHouse,
-    UpdateAuctionHouse,
-} from './helpers/types';
 
 export async function getAuctionHouseFromOpts(
     auctionHouse: any,
@@ -66,12 +52,11 @@ export async function getAuctionHouseFromOpts(
 //   )
 //   .action(async (directory, cmd) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const show_escrow = async (cmd: ShowEscrow) => {
-    const { keypair, env, auctionHouse, wallet } = cmd;
+export const show_escrow = async (directory: any, cmd: any) => {
+    const { keypair, env, auctionHouse, wallet } = cmd.opts();
 
     const otherWallet = wallet ? new web3.PublicKey(wallet) : null;
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
 
     const auctionHouseKey = new web3.PublicKey(auctionHouse);
@@ -115,16 +100,14 @@ export const show_escrow = async (cmd: ShowEscrow) => {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //   .action(async (directory, cmd) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const withdraw = async (cmd: Withdraw) => {
+export const withdraw = async (directory: any, cmd: any) => {
     const { keypair, env, amount, auctionHouse, auctionHouseKeypair } =
-        cmd;
+        cmd.opts();
     const auctionHouseKey = new web3.PublicKey(auctionHouse);
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair); ``
 
     const auctionHouseKeypairLoaded = auctionHouseKeypair
-        // ? loadWalletKey(auctionHouseKeypair)
-        ? auctionHouseKeypair
+        ? loadWalletKey(auctionHouseKeypair)
         : null;
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
     const auctionHouseObj = await anchorProgram.account.auctionHouse.fetch(
@@ -246,7 +229,7 @@ export const withdraw = async (cmd: Withdraw) => {
 // Set 1 F7fejo7cT1fRyJxj1W2aWy3aeJz8iqLU9YvbBAzwJGh2 for sale for 1 from your account with Auction House Ee53kiwLVw5XG98gSLNHoQRi4J22XEhz3zsKYY2ttsb7
 
 
-export const sell = async (cmd: Sell) => {
+export const sell = async (directory: any, cmd: any) => {
     const {
         keypair,
         env,
@@ -256,17 +239,15 @@ export const sell = async (cmd: Sell) => {
         mint,
         tokenSize,
         auctionHouseSigns,
-    } = cmd;
+    } = cmd.opts();
 
     const auctionHouseKey = new web3.PublicKey(auctionHouse);
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
 
     const mintKey = new web3.PublicKey(mint);
 
     const auctionHouseKeypairLoaded:any = auctionHouseKeypair
-        // ? loadWalletKey(auctionHouseKeypair)
-        ? auctionHouseKeypair
+        ? loadWalletKey(auctionHouseKeypair)
         : null;
     const anchorProgram = await loadAuctionHouseProgram(
         auctionHouseSigns ? auctionHouseKeypairLoaded : walletKeyPair,
@@ -286,7 +267,6 @@ export const sell = async (cmd: Sell) => {
         ),
     );
 
-    console.log("buyPriceAdjusted", buyPriceAdjusted);
     const tokenSizeAdjusted = new BN(
         await getPriceWithMantissa(
             tokenSize,
@@ -402,11 +382,10 @@ export const sell = async (cmd: Sell) => {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //   .action(async (directory, cmd) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const withdraw_from_treasury = async (cmd: WithdrawFromTreasury) => {
-    const { keypair, env, auctionHouse, treasuryMint, amount } = cmd;
+export const withdraw_from_treasury = async (directory: any, cmd: any) => {
+    const { keypair, env, auctionHouse, treasuryMint, amount } = cmd.opts();
 
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
 
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
 
@@ -491,11 +470,10 @@ export const withdraw_from_treasury = async (cmd: WithdrawFromTreasury) => {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //   .action(async (directory, cmd) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const withdraw_from_fees = async (cmd: WithdrawFromFees) => {
-    const { keypair, env, auctionHouse, treasuryMint, amount } = cmd;
+export const withdraw_from_fees = async (directory: any, cmd: any) => {
+    const { keypair, env, auctionHouse, treasuryMint, amount } = cmd.opts();
 
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
 
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
 
@@ -580,7 +558,7 @@ export const withdraw_from_fees = async (cmd: WithdrawFromFees) => {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //   .action(async (directory, cmd) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const cancel = async (cmd: Cancel) => {
+export const cancel = async (directory: any, cmd: any) => {
     const {
         keypair,
         env,
@@ -590,17 +568,15 @@ export const cancel = async (cmd: Cancel) => {
         mint,
         tokenSize,
         auctionHouseSigns,
-    } = cmd;
+    } = cmd.opts();
 
     const auctionHouseKey = new web3.PublicKey(auctionHouse);
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
 
     const mintKey = new web3.PublicKey(mint);
 
     const auctionHouseKeypairLoaded:any = auctionHouseKeypair
-        // ? loadWalletKey(auctionHouseKeypair)
-        ? auctionHouseKeypair
+        ? loadWalletKey(auctionHouseKeypair)
         : null;
     const anchorProgram = await loadAuctionHouseProgram(
         auctionHouseSigns ? auctionHouseKeypairLoaded : walletKeyPair,
@@ -733,7 +709,7 @@ export const cancel = async (cmd: Cancel) => {
 // wallet public key: DCDcpZaJUghstQNMHy9VAPnwQe1cGsHq7fbeqkti4kM3
 // Accepted 1 DCqt9QQ3ot3qv53EhWrYAWFuh4XgSvFJvLRjgsDnhLTp sale from wallet CCJC2s8FDGAs8GqmngE9gviusEuNnkdUwchcYMZ8ZmHB to 3DikCrEsfAVHv9rXENg2Hdmc16L71EjveQEF4NbSfRak for 2 from your account with Auction House HsKwc8dQtm8KLxshw67dwsNePkH6wMXo5Lwn1FuKjVYVS
 
-export const execute_sale = async (cmd: ExecuteSale) => {
+export const execute_sale = async (directory: any, cmd: any) => {
     const {
         keypair,
         env,
@@ -745,17 +721,15 @@ export const execute_sale = async (cmd: ExecuteSale) => {
         auctionHouseSigns,
         buyerWallet,
         sellerWallet,
-    } = cmd;
+    } = cmd.opts();
 
     const auctionHouseKey = new web3.PublicKey(auctionHouse);
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
 
     const mintKey = new web3.PublicKey(mint);
 
     const auctionHouseKeypairLoaded:any = auctionHouseKeypair
-        // ? loadWalletKey(auctionHouseKeypair)
-        ? auctionHouseKeypair
+        ? loadWalletKey(auctionHouseKeypair)
         : null;
     const anchorProgram = await loadAuctionHouseProgram(
         auctionHouseSigns ? auctionHouseKeypairLoaded : walletKeyPair,
@@ -846,22 +820,22 @@ export const execute_sale = async (cmd: ExecuteSale) => {
 
     for (let i = 0; i < metadataDecoded?.data.creators.length; i++) {
         remainingAccounts.push({
-            pubkey: new web3.PublicKey(metadataDecoded.data.creators[i].address) as never,
-            isWritable: true as never,
-            isSigner: false as never,
-        } as never);
+            pubkey: new web3.PublicKey(metadataDecoded.data.creators[i].address),
+            isWritable: true,
+            isSigner: false,
+        });
         if (!isNative) {
             remainingAccounts.push({
                 pubkey: (
                     await getAtaForMint(
                         //@ts-ignore
                         auctionHouseObj.treasuryMint,
-                        (remainingAccounts[remainingAccounts.length - 1] as any).pubkey,
+                        remainingAccounts[remainingAccounts.length - 1].pubkey,
                     )
-                )[0] as never,
-                isWritable: true as never,
-                isSigner: false as never,
-            } as never);
+                )[0],
+                isWritable: true,
+                isSigner: false,
+            });
         }
     }
     const signers: any = [];
@@ -964,6 +938,7 @@ export const execute_sale = async (cmd: ExecuteSale) => {
 //   )
 //   .option('-t, --token-size <string>', 'Amount of tokens you want to purchase')
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+//   .action(async (directory: any, cmd: any) => {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 //ts-node src/auction-house-cli.ts buy \
@@ -976,7 +951,7 @@ export const execute_sale = async (cmd: ExecuteSale) => {
 // wallet public key: DCDcpZaJUghstQNMHy9VAPnwQe1cGsHq7fbeqkti4kM3
 // Made offer for  2
 
-export const buy = async (cmd: Buy) => {
+export const buy = async (directory: any, cmd: any) => {
     const {
         keypair,
         env,
@@ -986,17 +961,15 @@ export const buy = async (cmd: Buy) => {
         mint,
         tokenSize,
         tokenAccount,
-    } = cmd;
+    } = cmd.opts();
 
     const auctionHouseKey = new web3.PublicKey(auctionHouse);
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
 
     const mintKey = new web3.PublicKey(mint);
 
     const auctionHouseKeypairLoaded = auctionHouseKeypair
-        // ? loadWalletKey(auctionHouseKeypair)
-        ? auctionHouseKeypair
+        ? loadWalletKey(auctionHouseKeypair)
         : null;
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
     const auctionHouseObj = await anchorProgram.account.auctionHouse.fetch(
@@ -1149,16 +1122,14 @@ export const buy = async (cmd: Buy) => {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //   .action(async (directory, cmd) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const deposit = async (cmd: Deposit) => {
+export const deposit = async (directory: any, cmd: any) => {
     const { keypair, env, amount, auctionHouse, auctionHouseKeypair } =
-        cmd;
+        cmd.opts();
     const auctionHouseKey = new web3.PublicKey(auctionHouse);
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
 
     const auctionHouseKeypairLoaded = auctionHouseKeypair
-        // ? loadWalletKey(auctionHouseKeypair)
-        ? auctionHouseKeypair
+        ? loadWalletKey(auctionHouseKeypair)
         : null;
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
     const auctionHouseObj = await anchorProgram.account.auctionHouse.fetch(
@@ -1313,11 +1284,10 @@ export const deposit = async (cmd: Deposit) => {
 // AH Treasury Bump: 254
 
 
-export const show = async (cmd: Show) => {
-    const { keypair, env, auctionHouse, treasuryMint } = cmd;
+export const show = async (directory: any, cmd: any) => {
+    const { keypair, env, auctionHouse, treasuryMint } = cmd.opts();
 
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
     let tMintKey;
     if (!treasuryMint) {
@@ -1447,7 +1417,7 @@ export const show = async (cmd: Show) => {
 // No treasury mint detected, using SOL.
 // Created auction house HsKwc8dQtm8KLxshw67dwsNePkH6wMXo5Lwn1FuKjVYVS <--- Your auction house key will be different 
 
-export const create_auction_house = async (cmd: CreateAuctionHouse) => {
+export const create_auction_house = async (directory: any, cmd: any) => {
     const {
         keypair,
         env,
@@ -1457,12 +1427,11 @@ export const create_auction_house = async (cmd: CreateAuctionHouse) => {
         treasuryWithdrawalDestination,
         feeWithdrawalDestination,
         treasuryMint,
-    } = cmd;
+    } = cmd.opts();
 
     const sfbp = parseInt(sellerFeeBasisPoints);
 
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
     const anchorProgram = await loadAuctionHouseProgram(walletKeyPair, env);
 
     let twdKey: web3.PublicKey,
@@ -1568,7 +1537,7 @@ export const create_auction_house = async (cmd: CreateAuctionHouse) => {
 //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //   .action(async (directory, cmd) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const update_auction_house = async (cmd: UpdateAuctionHouse) => {
+export const update_auction_house = async (directory: any, cmd: any) => {
     const {
         keypair,
         env,
@@ -1581,10 +1550,9 @@ export const update_auction_house = async (cmd: UpdateAuctionHouse) => {
         auctionHouse,
         newAuthority,
         force,
-    } = cmd;
+    } = cmd.opts();
 
-    // const walletKeyPair = loadWalletKey(keypair);
-    const walletKeyPair = keypair;
+    const walletKeyPair = loadWalletKey(keypair);
     const anchorProgram:any = await loadAuctionHouseProgram(walletKeyPair, env);
 
     let tMintKey: web3.PublicKey;
@@ -1736,24 +1704,3 @@ function setLogLevel(value: any, prev: any) {
 }
 
 // program.parse(process.argv);
-
-
-// Options:
-//   -e, --env <string>                                Solana cluster env name (default: "devnet")
-//   -k, --keypair <path>                              Solana wallet location (default: "--keypair not provided")
-//   -l, --log-level <string>                          log level
-//   -tm, --treasury-mint <string>                     Mint address of treasury. If not used, default to SOL.
-//   -sfbp, --seller-fee-basis-points <string>         Auction house cut of each txn, 10000 = 100%
-//   -ccsp, --can-change-sale-price <string>           if true, and user initially places item for sale for 0, then AH can
-//                                                     make new sell prices without consent(off chain price matching).
-//                                                     Should only be used in concert with requires-sign-off, so AH is
-//                                                     controlling every txn hitting the system.
-//   -rso, --requires-sign-off <string>                if true, no txn can occur against this Auction House without AH
-//                                                     authority as signer. Good if you are doing all txns through a
-//                                                     pass-through GCP or something.
-//   -twd, --treasury-withdrawal-destination <string>  if you wish to empty the treasury account, this is where it will
-//                                                     land, default is your keypair. Pass in a wallet, not an ATA - ATA
-//                                                     will be made for you if not present.
-//   -fwd, --fee-withdrawal-destination <string>       if you wish to empty the fee paying account, this is where it will
-//                                                     land, default is your keypair
-//   -h, --help                                        display help for command

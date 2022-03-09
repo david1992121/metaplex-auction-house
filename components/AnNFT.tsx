@@ -4,23 +4,15 @@ import { useEffect } from "react";
 
 export default function AnNFT({ nft }: any) {
   useEffect(() => {
-    // console.log(nft);
-    // fetchNft(nft);
+    console.log(nft);
   }, []);
 
   return (
-    <div className="card bordered max-w-xs compact rounded-md">
-      <figure className="min-h-16 animation-pulse-color">
-        <img
-          className="bg-gray-800 object-cover"
-          src={nft.uri}
-          alt={nft.data.description || nft.data.name}
-        />
-      </figure>
-      {/* <img src={nft.data.image} alt={nft.data.description || nft.data.name} /> */}
-      <div className="flex justify-between mt-2 card-body">
-        <p>{nft.data.name}</p>
-        <p className="font-bold">{nft.data.symbol}</p>
+    <div className="flex flex-col w-1/4 p-3 border-2 border-black">
+      <img src={nft.image} alt={nft.description || nft.name} />
+      <div className="flex justify-between mt-2">
+        <p>{nft.name}</p>
+        <p className="font-bold">{nft.symbol}</p>
       </div>
     </div>
   );

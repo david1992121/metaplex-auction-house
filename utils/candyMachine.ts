@@ -284,13 +284,12 @@ export async function getNFTsForOwner(
   for (let index = 0; index < tokenAccounts.value.length; index++) {
     const tokenAccount = tokenAccounts.value[index];
     const tokenAmount = tokenAccount.account.data.parsed.info.tokenAmount;
-    console.log("tokenaccounts", tokenAccount);
+    console.log("tokenaccounts", tokenAmount);
 
     if (
       tokenAmount.amount == "1" &&
-      tokenAmount.decimals == "0" 
-      // &&
-      // allMintsCandyMachine.includes(tokenAccount.account.data.parsed.info.mint)
+      tokenAmount.decimals == "0" &&
+      allMintsCandyMachine.includes(tokenAccount.account.data.parsed.info.mint)
     ) {
       let [pda] = await anchor.web3.PublicKey.findProgramAddress(
         [

@@ -142,10 +142,10 @@ import {
     const remainingAccounts = [];
     if (splToken) {
       remainingAccounts.push({
-        pubkey: splToken as never,
-        isSigner: false as never,
-        isWritable: false as never
-      } as never);
+        pubkey: splToken,
+        isSigner: false,
+        isWritable: false,
+      });
     }
     return {
       candyMachine: candyAccount.publicKey,
@@ -171,11 +171,11 @@ import {
           ),
         ],
       }),
+    };
   };
-};
-
-export const createConfig = async function (
-  anchorProgram: anchor.Program,
+  
+  export const createConfig = async function (
+    anchorProgram: anchor.Program,
     payerWallet: Keypair,
     configData: {
       maxNumberOfLines: anchor.BN;
@@ -193,20 +193,20 @@ export const createConfig = async function (
   ) {
     const configAccount = Keypair.generate();
     const uuid = uuidFromConfigPubkey(configAccount.publicKey);
-
+  
     if (!configData.creators || configData.creators.length === 0) {
       throw new Error(`Invalid config, there must be at least one creator.`);
     }
-
+  
     const totalShare = (configData.creators || []).reduce(
       (acc, curr) => acc + curr.share,
       0,
     );
-
+  
     if (totalShare !== 100) {
       throw new Error(`Invalid config, creators shares must add up to 100`);
     }
-
+  
     return {
       config: configAccount.publicKey,
       uuid,
@@ -236,11 +236,11 @@ export const createConfig = async function (
       ),
     };
   };
-
+  
   export function uuidFromConfigPubkey(configAccount: PublicKey) {
     return configAccount.toBase58().slice(0, 6);
   }
-
+  
   export const getTokenWallet = async function (
     wallet: PublicKey,
     mint: PublicKey,
@@ -252,7 +252,7 @@ export const createConfig = async function (
       )
     )[0];
   };
-
+  
   export const getCandyMachineAddress = async (
     config: anchor.web3.PublicKey,
     uuid: string,
@@ -262,7 +262,7 @@ export const createConfig = async function (
       CANDY_MACHINE_PROGRAM_ID,
     );
   };
-
+  
   export const deriveCandyMachineV2ProgramAddress = async (
     candyMachineId: anchor.web3.PublicKey,
   ): Promise<[PublicKey, number]> => {
@@ -271,7 +271,7 @@ export const createConfig = async function (
       CANDY_MACHINE_PROGRAM_V2_ID,
     );
   };
-
+  
   export const getConfig = async (
     authority: anchor.web3.PublicKey,
     uuid: string,
