@@ -21,6 +21,8 @@ import {
   PublicKey,
   TransactionInstruction,
   Transaction,
+  SYSVAR_RENT_PUBKEY,
+  SystemProgram,
 } from '@solana/web3.js'
 import { AuctionHouseProgram } from '@metaplex-foundation/mpl-auction-house'
 import { useForm, Controller } from 'react-hook-form'
@@ -28,6 +30,7 @@ import { Link } from 'react-router-dom'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import {MetadataProgram} from  '@metaplex-foundation/mpl-token-metadata'
 import BN from 'bn.js'
+import { TOKEN_PROGRAM_ID } from '../helpers/constants';
 
 export const NftItem = styled.button`
   &:hover {
@@ -145,8 +148,8 @@ export const Nft = (props: NftProps) => {
       associatedTokenAccount, 
       NATIVE_MINT,
       tokenMint,
-      sellPrice,
-      tokenSize
+      new BN(sellPrice).toNumber(),
+      new BN(tokenSize).toNumber()
     )
 
     const [metadata] = await MetadataProgram.findMetadataAccount(tokenMint)
@@ -160,13 +163,13 @@ export const Nft = (props: NftProps) => {
       freeTradeState,
       freeTradeBump,
     ]  = await AuctionHouseProgram.findTradeStateAddress(
-      auctionHouse,
       publicKey,
+      auctionHouse,
       associatedTokenAccount,
       NATIVE_MINT,
       tokenMint,
-      String(1),
-      String(0)
+      0,
+      new BN(tokenSize).toNumber()
     )
 
     // make transaction
@@ -190,6 +193,9 @@ export const Nft = (props: NftProps) => {
       sellerTradeState: sellerTradeState,
       freeSellerTradeState: freeTradeState,
       programAsSigner: programAsSigner,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+      rent: SYSVAR_RENT_PUBKEY,
     }
 
     // generate instruction
